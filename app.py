@@ -833,6 +833,54 @@ with aba2:
 
                                 
 # ==========================================
+# CSS GLOBAL PARA OS POLICORTES (BOTÕES DE LADO E CORES)
+# ==========================================
+st.markdown("""
+    <style>
+        /* Força as colunas a ficarem lado a lado mesmo em telas menores/tablets */
+        div[data-testid="stHorizontalBlock"] {
+            flex-wrap: nowrap !important;
+            align-items: center !important;
+            gap: 6px !important;
+        }
+
+        /* Reduz o espaçamento das colunas dos botões para ficarem pequenos do lado */
+        div[data-testid="column"] {
+            min-width: 0 !important;
+        }
+
+        /* Estilo base para botões compactos */
+        div.stButton > button {
+            padding: 4px 6px !important;
+            font-size: 13px !important;
+            height: 44px !important;
+            font-weight: bold !important;
+            border-radius: 6px !important;
+            border: none !important;
+            white-space: nowrap !important;
+        }
+
+        /* Botão Voltar (Amarelo / Laranja) */
+        div.stButton > button:not([kind="primary"]) {
+            background-color: #f39c12 !important;
+            color: #ffffff !important;
+        }
+
+        /* Botão Finalizar (Verde) */
+        div.stButton > button[kind="primary"] {
+            background-color: #27ae60 !important;
+            color: #ffffff !important;
+        }
+
+        /* Efeito de toque / clique */
+        div.stButton > button:active {
+            transform: scale(0.96);
+        }
+    </style>
+""", unsafe_allow_html=True)
+
+
+# ==========================================
 # ABAS 3, 4 e 5: POLICORTES 1, 2 e 3
 # ==========================================
 for aba_obj, nome_poli in zip([aba3, aba4, aba5], ["Policorte 1", "Policorte 2", "Policorte 3"]):
@@ -895,16 +943,16 @@ for aba_obj, nome_poli in zip([aba3, aba4, aba5], ["Policorte 1", "Policorte 2",
                     qtd_duplicada = contagem_codigos.get(str(row["Codigo"]).strip(), 1)
                     html_bolinha = f'<span title="{tooltip_bolinha}" style="height: 12px; width: 12px; background-color: {cor_bolinha}; border-radius: 50%; display: inline-block; margin-left: 6px; box-shadow: 0 0 4px {sombra_bolinha};"></span>' if qtd_duplicada > 1 else ''
 
-                    # Ajuste nas proporções das colunas para encaixe perfeito no tablet
-                    col_card, col_btn1, col_btn2 = st.columns([0.60, 0.20, 0.20])
+                    # Proporção: Card ocupa mais espaço e os botões ficam compactos ao lado
+                    col_card, col_btn1, col_btn2 = st.columns([0.70, 0.15, 0.15])
                     
                     with col_card:
                         st.markdown(
                             f"""
-                            <div style="padding: 8px 12px; border: 2px solid {borda_cor}; background-color: {fundo_cor}; border-radius: 6px; margin-bottom: 4px;">
-                                <span style="color: #495057; font-size: 13px; font-weight: 500;">ID: {current_id} | Tipo: <strong>{row['Tipo']}</strong> | Carga: <strong>{row['Carga']}</strong></span>
-                                <div style="margin-top: 3px; font-size: 18px; line-height: 1.3;">
-                                    <strong>Ordem:</strong> <span style="color: #0056b3; font-weight: bold; font-size: 20px;">{row['Codigo']}</span>{html_bolinha} | 
+                            <div style="padding: 8px 10px; border: 2px solid {borda_cor}; background-color: {fundo_cor}; border-radius: 6px;">
+                                <span style="color: #495057; font-size: 12px; font-weight: 500;">ID: {current_id} | Tipo: <strong>{row['Tipo']}</strong> | Carga: <strong>{row['Carga']}</strong></span>
+                                <div style="margin-top: 2px; font-size: 15px; line-height: 1.3;">
+                                    <strong>Ordem:</strong> <span style="color: #0056b3; font-weight: 900; font-size: 22px; letter-spacing: 0.5px;">{row['Codigo']}</span>{html_bolinha} | 
                                     <strong>Perfil:</strong> <span style="color: #0056b3; font-weight: bold;">{row['Perfis']}</span> | 
                                     <strong>Sobras:</strong> <span style="color: #28a745; font-weight: bold;">{row['Sobras']}</span>
                                 </div>
@@ -921,12 +969,13 @@ for aba_obj, nome_poli in zip([aba3, aba4, aba5], ["Policorte 1", "Policorte 2",
                             st.success(f"ID {current_id} voltou para Separação!")
                             st.rerun()
                     with col_btn2:
-                        if st.button("Finalizar", key=f"fin_{nome_poli}_{current_id}", use_container_width=True):
+                        if st.button("✅ Finalizar", key=f"fin_{nome_poli}_{current_id}", use_container_width=True, type="primary"):
                             df_atual = carregar_dados()
                             df_atual.loc[pd.to_numeric(df_atual["ID"], errors="coerce") == current_id, "Status"] = "Finalizado"
                             salvar_dados(df_atual)
                             st.success(f"ID {current_id} finalizado!")
                             st.rerun()
+
 
 # ==========================================
 # ABA 6: FINALIZADAS
