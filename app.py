@@ -832,58 +832,8 @@ with aba2:
 
 
                                 
-# ==========================================
-# CSS GLOBAL PARA FORÇAR LADO A LADO SEM EMPILHAR
-# ==========================================
-st.markdown("""
-    <style>
-        /* Desativa o empilhamento responsivo padrão do Streamlit */
-        [data-testid="stHorizontalBlock"] {
-            display: flex !important;
-            flex-direction: row !important;
-            flex-wrap: nowrap !important;
-            align-items: center !important;
-            gap: 6px !important;
-        }
-
-        /* Garante que as colunas dos botões fiquem compactas na direita */
-        [data-testid="column"] {
-            min-width: 0 !important;
-            flex: 1 1 auto !important;
-        }
-
-        /* Define largura fixa pequena para os botões */
-        [data-testid="column"]:nth-child(2),
-        [data-testid="column"]:nth-child(3) {
-            max-width: 85px !important;
-        }
-
-        /* Estilo dos Botões */
-        div.stButton > button {
-            padding: 2px 4px !important;
-            font-size: 12px !important;
-            height: 44px !important;
-            font-weight: bold !important;
-            border-radius: 6px !important;
-            border: none !important;
-            width: 100% !important;
-            white-space: nowrap !important;
-        }
-
-        /* Cor do Botão Voltar (Amarelo / Laranja) */
-        div.stButton > button:not([kind="primary"]) {
-            background-color: #f39c12 !important;
-            color: #ffffff !important;
-        }
-
-        /* Cor do Botão Finalizar (Verde) */
-        div.stButton > button[kind="primary"] {
-            background-color: #27ae60 !important;
-            color: #ffffff !important;
-        }
-    </style>
-""", unsafe_allow_html=True)
-
+import streamlit as st
+import streamlit.components.v1 as components
 
 # ==========================================
 # ABAS 3, 4 e 5: POLICORTES 1, 2 e 3
@@ -946,43 +896,94 @@ for aba_obj, nome_poli in zip([aba3, aba4, aba5], ["Policorte 1", "Policorte 2",
                         tooltip_bolinha = "Existem outros registros com este mesmo código no sistema"
 
                     qtd_duplicada = contagem_codigos.get(str(row["Codigo"]).strip(), 1)
-                    html_bolinha = f'<span title="{tooltip_bolinha}" style="height: 12px; width: 12px; background-color: {cor_bolinha}; border-radius: 50%; display: inline-block; margin-left: 6px; box-shadow: 0 0 4px {sombra_bolinha};"></span>' if qtd_duplicada > 1 else ''
+                    html_bolinha = f'<span title="{tooltip_bolinha}" style="height: 10px; width: 10px; background-color: {cor_bolinha}; border-radius: 50%; display: inline-block; margin-left: 4px; box-shadow: 0 0 4px {sombra_bolinha};"></span>' if qtd_duplicada > 1 else ''
 
-                    # Criação das 3 colunas nativas do Streamlit
-                    col_card, col_btn1, col_btn2 = st.columns([0.60, 0.20, 0.20])
-                    
-                    with col_card:
-                        st.markdown(
-                            f"""
-                            <div style="padding: 6px 8px; border: 2px solid {borda_cor}; background-color: {fundo_cor}; border-radius: 6px;">
-                                <span style="color: #495057; font-size: 11px; font-weight: 500;">ID: {current_id} | Tipo: <strong>{row['Tipo']}</strong> | Carga: <strong>{row['Carga']}</strong></span>
-                                <div style="margin-top: 2px; font-size: 13px; line-height: 1.2;">
-                                    <strong>Ordem:</strong> <span style="color: #0056b3; font-weight: 900; font-size: 20px; letter-spacing: 0.5px;">{row['Codigo']}</span>{html_bolinha} | 
-                                    <strong>Perfil:</strong> <span style="color: #0056b3; font-weight: bold;">{row['Perfis']}</span> | 
-                                    <strong>Sobras:</strong> <span style="color: #28a745; font-weight: bold;">{row['Sobras']}</span>
-                                </div>
+                    # Componente em HTML/CSS nativo para encaixe perfeito em 597px ou menos
+                    card_component = f"""
+                    <div style="
+                        display: flex; 
+                        align-items: center; 
+                        justify-content: space-between; 
+                        gap: 4px; 
+                        width: 100%; 
+                        box-sizing: border-box; 
+                        font-family: sans-serif;
+                        margin-bottom: 6px;
+                    ">
+                        <!-- CARD COM INFORMAÇÕES DA ORDEM -->
+                        <div style="
+                            flex: 1; 
+                            min-width: 0; 
+                            padding: 6px 8px; 
+                            border: 2px solid {borda_cor}; 
+                            background-color: {fundo_cor}; 
+                            border-radius: 6px;
+                            box-sizing: border-box;
+                        ">
+                            <div style="color: #495057; font-size: 11px; font-weight: 500; white-space: nowrap; overflow: hidden; text-overflow: ellipsis;">
+                                ID: {current_id} | Tipo: <strong>{row['Tipo']}</strong> | Carga: <strong>{row['Carga']}</strong>
                             </div>
-                            """,
-                            unsafe_allow_html=True,
-                        )
+                            <div style="margin-top: 2px; font-size: 12px; line-height: 1.2; white-space: nowrap; overflow: hidden; text-overflow: ellipsis;">
+                                <strong>Ordem:</strong> <span style="color: #0056b3; font-weight: 900; font-size: 18px; letter-spacing: 0.5px;">{row['Codigo']}</span>{html_bolinha} | 
+                                <strong>Perfil:</strong> <span style="color: #0056b3; font-weight: bold;">{row['Perfis']}</span> | 
+                                <strong>Sobras:</strong> <span style="color: #28a745; font-weight: bold;">{row['Sobras']}</span>
+                            </div>
+                        </div>
 
-                    with col_btn1:
-                        if st.button("⬅ Voltar", key=f"vol_{nome_poli}_{current_id}", use_container_width=True):
-                            df_atual = carregar_dados()
-                            df_atual.loc[pd.to_numeric(df_atual["ID"], errors="coerce") == current_id, "Status"] = "Pendente"
-                            df_atual.loc[pd.to_numeric(df_atual["ID"], errors="coerce") == current_id, "Policorte"] = "Nenhuma"
-                            salvar_dados(df_atual)
-                            st.success(f"ID {current_id} voltou para Separação!")
-                            st.rerun()
+                        <!-- BOTÃO VOLTAR -->
+                        <button onclick="window.parent.postMessage({{type: 'streamlit:setComponentValue', value: 'voltar_{current_id}'}}, '*')" style="
+                            background-color: #f39c12; 
+                            color: white; 
+                            border: none; 
+                            padding: 0 6px; 
+                            border-radius: 5px; 
+                            font-weight: bold; 
+                            font-size: 11px; 
+                            cursor: pointer; 
+                            height: 44px; 
+                            min-width: 55px;
+                            flex-shrink: 0;
+                        ">
+                            ⬅ Voltar
+                        </button>
 
-                    with col_btn2:
-                        if st.button("✅ Finalizar", key=f"fin_{nome_poli}_{current_id}", use_container_width=True, type="primary"):
-                            df_atual = carregar_dados()
-                            df_atual.loc[pd.to_numeric(df_atual["ID"], errors="coerce") == current_id, "Status"] = "Finalizado"
-                            salvar_dados(df_atual)
-                            st.success(f"ID {current_id} finalizado!")
-                            st.rerun()
+                        <!-- BOTÃO FINALIZAR -->
+                        <button onclick="window.parent.postMessage({{type: 'streamlit:setComponentValue', value: 'finalizar_{current_id}'}}, '*')" style="
+                            background-color: #27ae60; 
+                            color: white; 
+                            border: none; 
+                            padding: 0 6px; 
+                            border-radius: 5px; 
+                            font-weight: bold; 
+                            font-size: 11px; 
+                            cursor: pointer; 
+                            height: 44px; 
+                            min-width: 65px;
+                            flex-shrink: 0;
+                        ">
+                            ✅ Finalizar
+                        </button>
+                    </div>
+                    """
 
+                    # Renderiza o card e captura os cliques dos botões
+                    acao = components.html(card_component, height=54)
+
+                    # Lógica para processar as ações
+                    if acao == f"voltar_{current_id}":
+                        df_atual = carregar_dados()
+                        df_atual.loc[pd.to_numeric(df_atual["ID"], errors="coerce") == current_id, "Status"] = "Pendente"
+                        df_atual.loc[pd.to_numeric(df_atual["ID"], errors="coerce") == current_id, "Policorte"] = "Nenhuma"
+                        salvar_dados(df_atual)
+                        st.success(f"ID {current_id} voltou para Separação!")
+                        st.rerun()
+
+                    if acao == f"finalizar_{current_id}":
+                        df_atual = carregar_dados()
+                        df_atual.loc[pd.to_numeric(df_atual["ID"], errors="coerce") == current_id, "Status"] = "Finalizado"
+                        salvar_dados(df_atual)
+                        st.success(f"ID {current_id} finalizado!")
+                        st.rerun()
 
 # ==========================================
 # ABA 6: FINALIZADAS
