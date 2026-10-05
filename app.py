@@ -51,11 +51,11 @@ def carregar_dados():
         st.error(f"Erro ao carregar dados do Supabase: {e}")
         return pd.DataFrame(columns=["ID", "Data", "Tipo", "Carga", "Codigo", "Perfis", "Sobras", "Status", "Policorte", "Agrupado"])
 
-
-
-        
 def salvar_dados(df):
     try:
+        if supabase is None or df.empty:
+            return
+            
         st.cache_data.clear()
         
         # 1. Copia o DataFrame
@@ -76,50 +76,29 @@ def salvar_dados(df):
         if not records:
             return
 
-        # 5. Envia especificando 'on_conflict=id' no cabeçalho da requisição
-        url = f"{SUPABASE_URL}/rest/v1/{TABLE_NAME}?on_conflict=id"
-        headers_upsert = HEADERS.copy()
-        headers_upsert["Prefer"] = "resolution=merge-duplicates"
-        
-        response = requests.post(url, headers=headers_upsert, json=records)
-        
-        if response.status_code in [200, 201]:
-            st.toast("Dados salvos no Supabase com sucesso!", icon="⚡")
-        else:
-            st.error(f"Erro ao gravar no Supabase: {response.status_code} - {response.text}")
+        # 5. Envia via SDK do Supabase (Upsert / Atualiza se o ID já existir)
+        supabase.table("Sistema-Corte").upsert(records, on_conflict="id").execute()
+        st.toast("Dados salvos no Supabase com sucesso!", icon="⚡")
     except Exception as e:
         st.error(f"Erro ao salvar dados no Supabase: {e}")
-
-
-
-
-
-
 
 def excluir_ordens_por_ids(lista_ids):
     """Exclui diretamente do Supabase os IDs passados em uma única requisição."""
     try:
-        st.cache_data.clear()
-        # Converte a lista de IDs para o formato do PostgREST: (id1,id2,id3)
-        ids_str = ",".join(map(str, lista_ids))
-        url = f"{SUPABASE_URL}/rest/v1/{TABLE_NAME}?id=in.({ids_str})"
-        
-        response = requests.delete(url, headers=HEADERS)
-        
-        if response.status_code in [200, 204]:
-            return True
-        else:
-            st.error(f"Erro ao excluir do Supabase: {response.status_code} - {response.text}")
+        if supabase is None or not lista_ids:
             return False
+            
+        st.cache_data.clear()
+        
+        # Converte lista de IDs para string/int para o filtro .in_()
+        lista_ids_str = [str(i) for i in lista_ids]
+        
+        # Executa deleção via SDK do Supabase
+        supabase.table("Sistema-Corte").delete().in_("id", lista_ids_str).execute()
+        return True
     except Exception as e:
         st.error(f"Erro ao conectar ao Supabase para excluir: {e}")
         return False
-
-
-
-
-
-
 
 
 
