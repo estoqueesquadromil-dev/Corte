@@ -898,13 +898,13 @@ for aba_obj, nome_poli in zip([aba3, aba4, aba5], ["Policorte 1", "Policorte 2",
                     qtd_duplicada = contagem_codigos.get(str(row["Codigo"]).strip(), 1)
                     html_bolinha = f'<span title="{tooltip_bolinha}" style="height: 10px; width: 10px; background-color: {cor_bolinha}; border-radius: 50%; display: inline-block; margin-left: 4px; box-shadow: 0 0 4px {sombra_bolinha};"></span>' if qtd_duplicada > 1 else ''
 
-                    # Componente em HTML/CSS nativo para encaixe perfeito em 597px ou menos
+                    # Componente em HTML/CSS ajustado para não cortar "Sobras" nem os botões
                     card_component = f"""
                     <div style="
                         display: flex; 
                         align-items: center; 
                         justify-content: space-between; 
-                        gap: 4px; 
+                        gap: 6px; 
                         width: 100%; 
                         box-sizing: border-box; 
                         font-family: sans-serif;
@@ -923,8 +923,8 @@ for aba_obj, nome_poli in zip([aba3, aba4, aba5], ["Policorte 1", "Policorte 2",
                             <div style="color: #495057; font-size: 11px; font-weight: 500; white-space: nowrap; overflow: hidden; text-overflow: ellipsis;">
                                 ID: {current_id} | Tipo: <strong>{row['Tipo']}</strong> | Carga: <strong>{row['Carga']}</strong>
                             </div>
-                            <div style="margin-top: 2px; font-size: 12px; line-height: 1.2; white-space: nowrap; overflow: hidden; text-overflow: ellipsis;">
-                                <strong>Ordem:</strong> <span style="color: #0056b3; font-weight: 900; font-size: 18px; letter-spacing: 0.5px;">{row['Codigo']}</span>{html_bolinha} | 
+                            <div style="margin-top: 2px; font-size: 12px; line-height: 1.3; word-break: break-word;">
+                                <strong>Ordem:</strong> <span style="color: #0056b3; font-weight: 900; font-size: 17px; letter-spacing: 0.5px;">{row['Codigo']}</span>{html_bolinha} | 
                                 <strong>Perfil:</strong> <span style="color: #0056b3; font-weight: bold;">{row['Perfis']}</span> | 
                                 <strong>Sobras:</strong> <span style="color: #28a745; font-weight: bold;">{row['Sobras']}</span>
                             </div>
@@ -935,13 +935,13 @@ for aba_obj, nome_poli in zip([aba3, aba4, aba5], ["Policorte 1", "Policorte 2",
                             background-color: #f39c12; 
                             color: white; 
                             border: none; 
-                            padding: 0 6px; 
+                            padding: 0 4px; 
                             border-radius: 5px; 
                             font-weight: bold; 
                             font-size: 11px; 
                             cursor: pointer; 
-                            height: 44px; 
-                            min-width: 55px;
+                            height: 46px; 
+                            min-width: 52px;
                             flex-shrink: 0;
                         ">
                             ⬅ Voltar
@@ -952,13 +952,13 @@ for aba_obj, nome_poli in zip([aba3, aba4, aba5], ["Policorte 1", "Policorte 2",
                             background-color: #27ae60; 
                             color: white; 
                             border: none; 
-                            padding: 0 6px; 
+                            padding: 0 4px; 
                             border-radius: 5px; 
                             font-weight: bold; 
                             font-size: 11px; 
                             cursor: pointer; 
-                            height: 44px; 
-                            min-width: 65px;
+                            height: 46px; 
+                            min-width: 60px;
                             flex-shrink: 0;
                         ">
                             ✅ Finalizar
@@ -967,7 +967,7 @@ for aba_obj, nome_poli in zip([aba3, aba4, aba5], ["Policorte 1", "Policorte 2",
                     """
 
                     # Renderiza o card e captura os cliques dos botões
-                    acao = components.html(card_component, height=54)
+                    acao = components.html(card_component, height=58)
 
                     # Lógica para processar as ações
                     if acao == f"voltar_{current_id}":
@@ -984,7 +984,6 @@ for aba_obj, nome_poli in zip([aba3, aba4, aba5], ["Policorte 1", "Policorte 2",
                         salvar_dados(df_atual)
                         st.success(f"ID {current_id} finalizado!")
                         st.rerun()
-
 # ==========================================
 # ABA 6: FINALIZADAS
 # ==========================================
