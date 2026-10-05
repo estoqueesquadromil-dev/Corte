@@ -862,7 +862,7 @@ for aba_obj, nome_poli in zip([aba3, aba4, aba5], ["Policorte 1", "Policorte 2",
                 inicio, fim, _, _ = criar_paginacao(total_filtradas, 20, chave_poli_slug)
                 filtradas_pagina = filtradas.iloc[inicio:fim]
 
-                st.markdown(f"<p style='color: gray; font-size: 12px; margin: 2px 0;'>Mostrando itens <strong>{inicio+1} a {fim}</strong> de <strong>{total_filtradas}</strong></p>", unsafe_allow_html=True)
+                st.markdown(f"<p style='color: gray; font-size: 13px; margin: 2px 0;'>Mostrando itens <strong>{inicio+1} a {fim}</strong> de <strong>{total_filtradas}</strong></p>", unsafe_allow_html=True)
 
                 for index, row in filtradas_pagina.iterrows():
                     try:
@@ -893,25 +893,27 @@ for aba_obj, nome_poli in zip([aba3, aba4, aba5], ["Policorte 1", "Policorte 2",
                         tooltip_bolinha = "Existem outros registros com este mesmo código no sistema"
 
                     qtd_duplicada = contagem_codigos.get(str(row["Codigo"]).strip(), 1)
-                    html_bolinha = f'<span title="{tooltip_bolinha}" style="height: 10px; width: 10px; background-color: {cor_bolinha}; border-radius: 50%; display: inline-block; margin-left: 6px; box-shadow: 0 0 4px {sombra_bolinha};"></span>' if qtd_duplicada > 1 else ''
+                    html_bolinha = f'<span title="{tooltip_bolinha}" style="height: 12px; width: 12px; background-color: {cor_bolinha}; border-radius: 50%; display: inline-block; margin-left: 6px; box-shadow: 0 0 4px {sombra_bolinha};"></span>' if qtd_duplicada > 1 else ''
 
-                    col_card, col_btn1, col_btn2 = st.columns([0.70, 0.15, 0.15])
+                    # Ajuste nas proporções das colunas para encaixe perfeito no tablet
+                    col_card, col_btn1, col_btn2 = st.columns([0.60, 0.20, 0.20])
+                    
                     with col_card:
                         st.markdown(
                             f"""
-                            <div style="padding: 4px 8px; border: 1px solid {borda_cor}; background-color: {fundo_cor}; border-radius: 4px; margin-bottom: 4px; font-size: 13px;">
-                                <span style="color: #6c757d; font-size: 11px;">ID: {current_id} | Tipo: <strong>{row['Tipo']}</strong> | Carga: {row['Carga']}</span>
-                                <div style="margin-top: 1px;">
-                                    <strong>Ordem:</strong> <span style="color: #0056b3; font-weight: bold;">{row['Codigo']}</span>{html_bolinha} | 
+                            <div style="padding: 8px 12px; border: 2px solid {borda_cor}; background-color: {fundo_cor}; border-radius: 6px; margin-bottom: 4px;">
+                                <span style="color: #495057; font-size: 13px; font-weight: 500;">ID: {current_id} | Tipo: <strong>{row['Tipo']}</strong> | Carga: <strong>{row['Carga']}</strong></span>
+                                <div style="margin-top: 3px; font-size: 18px; line-height: 1.3;">
+                                    <strong>Ordem:</strong> <span style="color: #0056b3; font-weight: bold; font-size: 20px;">{row['Codigo']}</span>{html_bolinha} | 
                                     <strong>Perfil:</strong> <span style="color: #0056b3; font-weight: bold;">{row['Perfis']}</span> | 
-                                    <strong>Sobras:</strong> <span style="color: #28a745;">{row['Sobras']}</span>
+                                    <strong>Sobras:</strong> <span style="color: #28a745; font-weight: bold;">{row['Sobras']}</span>
                                 </div>
                             </div>
                             """,
                             unsafe_allow_html=True,
                         )
                     with col_btn1:
-                        if st.button("⬅️️ Voltar", key=f"vol_{nome_poli}_{current_id}", use_container_width=True):
+                        if st.button("⬅ Voltar", key=f"vol_{nome_poli}_{current_id}", use_container_width=True):
                             df_atual = carregar_dados()
                             df_atual.loc[pd.to_numeric(df_atual["ID"], errors="coerce") == current_id, "Status"] = "Pendente"
                             df_atual.loc[pd.to_numeric(df_atual["ID"], errors="coerce") == current_id, "Policorte"] = "Nenhuma"
