@@ -241,15 +241,20 @@ def formatar_string_itens(dicionario_itens, tipo_padrao):
 # --- CSS GLOBAL PARA COMPACTAR ESPAÇAMENTOS ---
 st.markdown(
     """
-    <style>
+<style>
+        /* Adiciona um espaço no topo da página para não cortar o título */
         .block-container {
-            padding-top: 1.2rem !important;
+            padding-top: 3.5rem !important;
             padding-bottom: 1rem !important;
         }
-        h3, h4, h5 {
-            margin-bottom: 2px !important;
-            margin-top: 2px !important;
+        
+        /* Ajusta o espaçamento do título principal */
+        .titulo-principal {
+            margin-top: 10px !important;
+            margin-bottom: 5px !important;
+            padding-bottom: 0px !important;
         }
+
         hr {
             margin: 8px 0px !important;
         }
