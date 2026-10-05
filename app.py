@@ -832,8 +832,33 @@ with aba2:
 
 
                                 
-import streamlit as st
-import streamlit.components.v1 as components
+# ==========================================
+# CSS DEDICADO PARA MANTER LAYOUT LADO A LADO
+# ==========================================
+st.markdown("""
+    <style>
+        /* Força as colunas a ficarem na mesma linha mesmo em telas menores (tablets) */
+        [data-testid="stHorizontalBlock"] {
+            display: flex !important;
+            flex-direction: row !important;
+            flex-wrap: nowrap !important;
+            align-items: center !important;
+            gap: 6px !important;
+        }
+
+        /* Padroniza o visual e tamanho dos botões nativos */
+        div.stButton > button {
+            padding: 2px 4px !important;
+            font-size: 11px !important;
+            height: 42px !important;
+            font-weight: bold !important;
+            border-radius: 4px !important;
+            width: 100% !important;
+            white-space: nowrap !important;
+        }
+    </style>
+""", unsafe_allow_html=True)
+
 
 # ==========================================
 # ABAS 3, 4 e 5: POLICORTES 1, 2 e 3
@@ -865,7 +890,7 @@ for aba_obj, nome_poli in zip([aba3, aba4, aba5], ["Policorte 1", "Policorte 2",
                 inicio, fim, _, _ = criar_paginacao(total_filtradas, 20, chave_poli_slug)
                 filtradas_pagina = filtradas.iloc[inicio:fim]
 
-                st.markdown(f"<p style='color: gray; font-size: 13px; margin: 2px 0;'>Mostrando itens <strong>{inicio+1} a {fim}</strong> de <strong>{total_filtradas}</strong></p>", unsafe_allow_html=True)
+                st.markdown(f"<p style='color: gray; font-size: 12px; margin: 2px 0;'>Mostrando itens <strong>{inicio+1} a {fim}</strong> de <strong>{total_filtradas}</strong></p>", unsafe_allow_html=True)
 
                 for index, row in filtradas_pagina.iterrows():
                     try:
@@ -896,94 +921,45 @@ for aba_obj, nome_poli in zip([aba3, aba4, aba5], ["Policorte 1", "Policorte 2",
                         tooltip_bolinha = "Existem outros registros com este mesmo código no sistema"
 
                     qtd_duplicada = contagem_codigos.get(str(row["Codigo"]).strip(), 1)
-                    html_bolinha = f'<span title="{tooltip_bolinha}" style="height: 10px; width: 10px; background-color: {cor_bolinha}; border-radius: 50%; display: inline-block; margin-left: 4px; box-shadow: 0 0 4px {sombra_bolinha};"></span>' if qtd_duplicada > 1 else ''
+                    html_bolinha = f'<span title="{tooltip_bolinha}" style="height: 10px; width: 10px; background-color: {cor_bolinha}; border-radius: 50%; display: inline-block; margin-left: 6px; box-shadow: 0 0 4px {sombra_bolinha};"></span>' if qtd_duplicada > 1 else ''
 
-                    # Componente em HTML/CSS ajustado para não cortar "Sobras" nem os botões
-                    card_component = f"""
-                    <div style="
-                        display: flex; 
-                        align-items: center; 
-                        justify-content: space-between; 
-                        gap: 6px; 
-                        width: 100%; 
-                        box-sizing: border-box; 
-                        font-family: sans-serif;
-                        margin-bottom: 6px;
-                    ">
-                        <!-- CARD COM INFORMAÇÕES DA ORDEM -->
-                        <div style="
-                            flex: 1; 
-                            min-width: 0; 
-                            padding: 6px 8px; 
-                            border: 2px solid {borda_cor}; 
-                            background-color: {fundo_cor}; 
-                            border-radius: 6px;
-                            box-sizing: border-box;
-                        ">
-                            <div style="color: #495057; font-size: 11px; font-weight: 500; white-space: nowrap; overflow: hidden; text-overflow: ellipsis;">
-                                ID: {current_id} | Tipo: <strong>{row['Tipo']}</strong> | Carga: <strong>{row['Carga']}</strong>
+                    # Ajuste fino nas proporções: 66% para o card com texto flexível e 17% para cada botão
+                    col_card, col_btn1, col_btn2 = st.columns([0.66, 0.17, 0.17])
+                    
+                    with col_card:
+                        st.markdown(
+                            f"""
+                            <div style="padding: 4px 8px; border: 1px solid {borda_cor}; background-color: {fundo_cor}; border-radius: 4px; margin-bottom: 4px; font-size: 13px;">
+                                <div style="color: #6c757d; font-size: 11px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis;">
+                                    ID: {current_id} | Tipo: <strong>{row['Tipo']}</strong> | Carga: {row['Carga']}
+                                </div>
+                                <div style="margin-top: 1px; word-break: break-word;">
+                                    <strong>Ordem:</strong> <span style="color: #0056b3; font-weight: bold;">{row['Codigo']}</span>{html_bolinha} | 
+                                    <strong>Perfil:</strong> <span style="color: #0056b3; font-weight: bold;">{row['Perfis']}</span> | 
+                                    <strong>Sobras:</strong> <span style="color: #28a745;">{row['Sobras']}</span>
+                                </div>
                             </div>
-                            <div style="margin-top: 2px; font-size: 12px; line-height: 1.3; word-break: break-word;">
-                                <strong>Ordem:</strong> <span style="color: #0056b3; font-weight: 900; font-size: 17px; letter-spacing: 0.5px;">{row['Codigo']}</span>{html_bolinha} | 
-                                <strong>Perfil:</strong> <span style="color: #0056b3; font-weight: bold;">{row['Perfis']}</span> | 
-                                <strong>Sobras:</strong> <span style="color: #28a745; font-weight: bold;">{row['Sobras']}</span>
-                            </div>
-                        </div>
+                            """,
+                            unsafe_allow_html=True,
+                        )
+                    with col_btn1:
+                        if st.button("⬅ Voltar", key=f"vol_{nome_poli}_{current_id}", use_container_width=True):
+                            df_atual = carregar_dados()
+                            df_atual.loc[pd.to_numeric(df_atual["ID"], errors="coerce") == current_id, "Status"] = "Pendente"
+                            df_atual.loc[pd.to_numeric(df_atual["ID"], errors="coerce") == current_id, "Policorte"] = "Nenhuma"
+                            salvar_dados(df_atual)
+                            st.success(f"ID {current_id} voltou para Separação!")
+                            st.rerun()
+                    with col_btn2:
+                        if st.button("Finalizar", key=f"fin_{nome_poli}_{current_id}", use_container_width=True):
+                            df_atual = carregar_dados()
+                            df_atual.loc[pd.to_numeric(df_atual["ID"], errors="coerce") == current_id, "Status"] = "Finalizado"
+                            salvar_dados(df_atual)
+                            st.success(f"ID {current_id} finalizado!")
+                            st.rerun()
 
-                        <!-- BOTÃO VOLTAR -->
-                        <button onclick="window.parent.postMessage({{type: 'streamlit:setComponentValue', value: 'voltar_{current_id}'}}, '*')" style="
-                            background-color: #f39c12; 
-                            color: white; 
-                            border: none; 
-                            padding: 0 4px; 
-                            border-radius: 5px; 
-                            font-weight: bold; 
-                            font-size: 11px; 
-                            cursor: pointer; 
-                            height: 46px; 
-                            min-width: 52px;
-                            flex-shrink: 0;
-                        ">
-                            ⬅ Voltar
-                        </button>
 
-                        <!-- BOTÃO FINALIZAR -->
-                        <button onclick="window.parent.postMessage({{type: 'streamlit:setComponentValue', value: 'finalizar_{current_id}'}}, '*')" style="
-                            background-color: #27ae60; 
-                            color: white; 
-                            border: none; 
-                            padding: 0 4px; 
-                            border-radius: 5px; 
-                            font-weight: bold; 
-                            font-size: 11px; 
-                            cursor: pointer; 
-                            height: 46px; 
-                            min-width: 60px;
-                            flex-shrink: 0;
-                        ">
-                            ✅ Finalizar
-                        </button>
-                    </div>
-                    """
 
-                    # Renderiza o card e captura os cliques dos botões
-                    acao = components.html(card_component, height=58)
-
-                    # Lógica para processar as ações
-                    if acao == f"voltar_{current_id}":
-                        df_atual = carregar_dados()
-                        df_atual.loc[pd.to_numeric(df_atual["ID"], errors="coerce") == current_id, "Status"] = "Pendente"
-                        df_atual.loc[pd.to_numeric(df_atual["ID"], errors="coerce") == current_id, "Policorte"] = "Nenhuma"
-                        salvar_dados(df_atual)
-                        st.success(f"ID {current_id} voltou para Separação!")
-                        st.rerun()
-
-                    if acao == f"finalizar_{current_id}":
-                        df_atual = carregar_dados()
-                        df_atual.loc[pd.to_numeric(df_atual["ID"], errors="coerce") == current_id, "Status"] = "Finalizado"
-                        salvar_dados(df_atual)
-                        st.success(f"ID {current_id} finalizado!")
-                        st.rerun()
 # ==========================================
 # ABA 6: FINALIZADAS
 # ==========================================
