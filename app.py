@@ -25,36 +25,31 @@ supabase = init_supabase()
 def carregar_dados():
     try:
         if supabase is None:
-            return pd.DataFrame()
+            return pd.DataFrame(columns=["ID", "Data", "Tipo", "Carga", "Codigo", "Perfis", "Sobras", "Status", "Policorte", "Agrupado"])
             
         # Busca todas as linhas da tabela 'Sistema-Corte' no Supabase
         response = supabase.table("Sistema-Corte").select("*").execute()
         
+        colunas_padrao = ["ID", "Data", "Tipo", "Carga", "Codigo", "Perfis", "Sobras", "Status", "Policorte", "Agrupado"]
+
         if not response.data:
-            return pd.DataFrame(columns=["id", "Data", "Tipo", "Carga", "Codigo", "Perfis", "Sobras", "Status", "Policorte", "Agrupado"])
+            return pd.DataFrame(columns=colunas_padrao)
             
         df = pd.DataFrame(response.data)
+        
+        # Ajusta nome da coluna 'id' para 'ID' se veio do Supabase
+        if "id" in df.columns:
+            df = df.rename(columns={"id": "ID"})
+            
+        # Garante que todas as colunas esperadas existam no DataFrame
+        for col in colunas_padrao:
+            if col not in df.columns:
+                df[col] = ""
+                
         return df
     except Exception as e:
         st.error(f"Erro ao carregar dados do Supabase: {e}")
-        return pd.DataFrame()
-
-def salvar_dados(df_novo):
-    """
-    Função para inserir novos registros ou atualizar dados na tabela Sistema-Corte.
-    """
-    try:
-        if supabase is None or df_novo.empty:
-            return
-            
-        # Converter o DataFrame para dicionário de registros (formato JSON)
-        registros = df_novo.to_dict(orient="records")
-        
-        # Envia os registros para o Supabase
-        supabase.table("Sistema-Corte").upsert(registros).execute()
-        st.success("Dados atualizados com sucesso no Supabase!")
-    except Exception as e:
-        st.error(f"Erro ao salvar dados no Supabase: {e}")
+        return pd.DataFrame(columns=["ID", "Data", "Tipo", "Carga", "Codigo", "Perfis", "Sobras", "Status", "Policorte", "Agrupado"])
 
 
 
