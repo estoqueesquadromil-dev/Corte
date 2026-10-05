@@ -54,6 +54,76 @@ def carregar_dados():
 
 
         
+def salvar_dados(df):
+    try:
+        st.cache_data.clear()
+        
+        # 1. Copia o DataFrame
+        df_envio = df.copy()
+
+        # 2. Garante que a chave primária se chame "id" (minúsculo)
+        if "ID" in df_envio.columns:
+            df_envio = df_envio.rename(columns={"ID": "id"})
+
+        # 3. Trata valores nulos / NaN para compatibilidade com JSON
+        df_envio = df_envio.fillna("")
+        for col in df_envio.columns:
+            df_envio[col] = df_envio[col].astype(str).replace("nan", "")
+
+        # 4. Converte para lista de dicionários
+        records = df_envio.to_dict(orient="records")
+        
+        if not records:
+            return
+
+        # 5. Envia especificando 'on_conflict=id' no cabeçalho da requisição
+        url = f"{SUPABASE_URL}/rest/v1/{TABLE_NAME}?on_conflict=id"
+        headers_upsert = HEADERS.copy()
+        headers_upsert["Prefer"] = "resolution=merge-duplicates"
+        
+        response = requests.post(url, headers=headers_upsert, json=records)
+        
+        if response.status_code in [200, 201]:
+            st.toast("Dados salvos no Supabase com sucesso!", icon="⚡")
+        else:
+            st.error(f"Erro ao gravar no Supabase: {response.status_code} - {response.text}")
+    except Exception as e:
+        st.error(f"Erro ao salvar dados no Supabase: {e}")
+
+
+
+
+
+
+
+def excluir_ordens_por_ids(lista_ids):
+    """Exclui diretamente do Supabase os IDs passados em uma única requisição."""
+    try:
+        st.cache_data.clear()
+        # Converte a lista de IDs para o formato do PostgREST: (id1,id2,id3)
+        ids_str = ",".join(map(str, lista_ids))
+        url = f"{SUPABASE_URL}/rest/v1/{TABLE_NAME}?id=in.({ids_str})"
+        
+        response = requests.delete(url, headers=HEADERS)
+        
+        if response.status_code in [200, 204]:
+            return True
+        else:
+            st.error(f"Erro ao excluir do Supabase: {response.status_code} - {response.text}")
+            return False
+    except Exception as e:
+        st.error(f"Erro ao conectar ao Supabase para excluir: {e}")
+        return False
+
+
+
+
+
+
+
+
+
+
 
 def eh_perfil(nome):
     nome_upper = str(nome).strip().upper()
@@ -168,15 +238,21 @@ def parse_string_itens(texto_str):
     partes = texto_str.split("|")
     for parte in partes:
         parte = parte.strip()
-        match = re.search(r'^(.*?)\s*\(Qtd:\s*(\d+)\)$', parte)
+        # Busca o nome do item e todas as quantidades no formato (Qtd: X) ou (Qtd: X,XX)
+        match = re.search(r'^(.*?)\s*\((?:Qtd:\s*[\d\.,]+)\)+', parte)
         if match:
             item_nome = match.group(1).strip()
-            qtd = int(match.group(2))
-            resultado[item_nome] = resultado.get(item_nome, 0) + qtd
+            # Extrai todas as ocorrências de números de quantidade na string
+            qtds = re.findall(r'Qtd:\s*([\d\.,]+)', parte)
+            for q_str in qtds:
+                try:
+                    q_num = int(float(q_str.replace(",", ".")))
+                    resultado[item_nome] = resultado.get(item_nome, 0) + q_num
+                except:
+                    pass
         elif parte:
             resultado[parte] = resultado.get(parte, 0) + 1
     return resultado
-
 def formatar_string_itens(dicionario_itens, tipo_padrao):
     if not dicionario_itens:
         return "Nenhum" if tipo_padrao == "Perfil" else "Nenhuma"
@@ -326,7 +402,10 @@ with aba1:
             inicio_ord, fim_ord, pagina_atual_cad, total_pag_cad = criar_paginacao(total_cadastradas, 30, "cadastradas")
             df_cadastradas_pagina = df_global_atual.iloc[inicio_ord:fim_ord]
 
-            col_ctrl_ord1, col_ctrl_ord2 = st.columns([2, 1])
+            # Mapeia contagem de códigos repetidos em todo o banco de dados
+            contagem_codigos = df_global_atual["Codigo"].astype(str).str.strip().value_counts().to_dict()
+
+            col_ctrl_ord1, col_ctrl_ord2, col_ctrl_ord3 = st.columns([1.5, 1.2, 1.2])
             with col_ctrl_ord1:
                 def atualizar_todos_checkboxes_cad():
                     estado_desejado = st.session_state.get(f"master_chk_cad_{pagina_atual_cad}", False)
@@ -338,22 +417,41 @@ with aba1:
                     key=f"master_chk_cad_{pagina_atual_cad}",
                     on_change=atualizar_todos_checkboxes_cad
                 )
+
             with col_ctrl_ord2:
+                if st.button("🚨 Priorizar Ordem", type="secondary", use_container_width=True):
+                    ids_para_priorizar = []
+                    for _, row in df_cadastradas_pagina.iterrows():
+                        cid = int(row["ID"])
+                        if st.session_state.get(f"chk_cad_{cid}", False):
+                            ids_para_priorizar.append(cid)
+
+                    if not ids_para_priorizar:
+                        st.warning("Nenhuma ordem foi selecionada para priorizar!")
+                    else:
+                        df_atual = carregar_dados()
+                        # Atualiza o Tipo das ordens selecionadas para "Ordens Criadas"
+                        for cid in ids_para_priorizar:
+                            df_atual.loc[pd.to_numeric(df_atual["ID"], errors="coerce") == cid, "Tipo"] = "Ordens Criadas"
+                        
+                        salvar_dados(df_atual)
+                        st.success(f"{len(ids_para_priorizar)} ordem(ns) priorizada(s) com sucesso!")
+                        st.rerun()
+
+            with col_ctrl_ord3:
                 if st.button("🗑️ Excluir Selecionadas", type="primary", use_container_width=True):
                     ids_para_excluir = []
                     for _, row in df_cadastradas_pagina.iterrows():
                         cid = int(row["ID"])
                         if st.session_state.get(f"chk_cad_{cid}", False):
-                            ids_para_excluir.append(str(cid))
-                    
+                            ids_para_excluir.append(cid)
+
                     if not ids_para_excluir:
                         st.warning("Nenhuma ordem foi selecionada para exclusão!")
                     else:
-                        df_atual = carregar_dados()
-                        df_atual = df_atual[~df_atual["ID"].astype(str).isin(ids_para_excluir)]
-                        salvar_dados(df_atual)
-                        st.success(f"{len(ids_para_excluir)} ordem(ns) excluída(s) com sucesso!")
-                        st.rerun()
+                        if excluir_ordens_por_ids(ids_para_excluir):
+                            st.success(f"{len(ids_para_excluir)} ordem(ns) excluída(s) com sucesso!")
+                            st.rerun()
 
             st.markdown(f"<p style='color: gray; font-size: 12px; margin: 2px 0;'>Mostrando itens <strong>{inicio_ord+1} a {fim_ord}</strong> de <strong>{total_cadastradas}</strong></p>", unsafe_allow_html=True)
             st.markdown("<hr style='margin: 4px 0 6px 0;'>", unsafe_allow_html=True)
@@ -367,6 +465,29 @@ with aba1:
                 if f"chk_cad_{current_id}" not in st.session_state:
                     st.session_state[f"chk_cad_{current_id}"] = False
 
+                # Lógica de estilização visual igual às outras abas
+                is_agrupado = str(row.get("Agrupado", "Não")) == "Sim"
+                is_prioridade = str(row["Tipo"]) == "Ordens Criadas"
+
+                if is_agrupado:
+                    borda_cor = "#0d6efd"
+                    fundo_cor = "#e7f1ff"
+                elif is_prioridade:
+                    borda_cor = "#dc3545"
+                    fundo_cor = "#fff5f5"
+                else:
+                    borda_cor = "#ced4da"
+                    fundo_cor = "#ffffff"
+
+                # Bolinha vermelha para código com mais de 1 registro no sistema
+                qtd_duplicada = contagem_codigos.get(str(row["Codigo"]).strip(), 1)
+                html_bolinha = (
+                    '<span title="Existem outros registros com este mesmo código no sistema" '
+                    'style="height: 10px; width: 10px; background-color: #dc3545; border-radius: 50%; '
+                    'display: inline-block; margin-left: 6px; box-shadow: 0 0 4px #dc3545;"></span>'
+                    if qtd_duplicada > 1 else ''
+                )
+
                 col_c1, col_c2 = st.columns([0.04, 0.96])
                 with col_c1:
                     st.markdown("<div style='height: 2px;'></div>", unsafe_allow_html=True)
@@ -374,10 +495,10 @@ with aba1:
                 with col_c2:
                     st.markdown(
                         f"""
-                        <div style="padding: 4px 8px; border: 1px solid #ced4da; background-color: #ffffff; border-radius: 4px; margin-bottom: 4px; font-size: 13px;">
+                        <div style="padding: 4px 8px; border: 1px solid {borda_cor}; background-color: {fundo_cor}; border-radius: 4px; margin-bottom: 4px; font-size: 13px;">
                             <span style="color: #6c757d; font-size: 11px;">ID: {current_id} | Data: {row['Data']} | Tipo: <strong>{row['Tipo']}</strong> | Carga: <strong>{row['Carga']}</strong> | Status: <strong>{row['Status']}</strong></span>
                             <div style="margin-top: 1px;">
-                                <strong>Ordem:</strong> <span style="color: #0056b3; font-weight: bold;">{row['Codigo']}</span> &nbsp;|&nbsp;
+                                <strong>Ordem:</strong> <span style="color: #0056b3; font-weight: bold;">{row['Codigo']}</span>{html_bolinha} &nbsp;|&nbsp;
                                 <strong>Perfil:</strong> <span style="color: #0056b3; font-weight: bold;">{row['Perfis']}</span> &nbsp;|&nbsp;
                                 <strong>Sobras:</strong> <span style="color: #28a745;">{row['Sobras']}</span>
                             </div>
@@ -389,6 +510,12 @@ with aba1:
             st.info("Nenhum item encontrado com os filtros aplicados.")
     else:
         st.info("Nenhuma ordem cadastrada ainda.")
+
+
+
+
+
+
 
 # ==========================================
 # ABA 2: SEPARAÇÃO CORTE
@@ -438,7 +565,10 @@ with aba2:
                 def atualizar_todos_checkboxes():
                     estado_desejado = st.session_state.get(f"master_chk_{pagina_atual}", False)
                     for _, r in pendentes_pagina.iterrows():
-                        st.session_state[f"chk_ordem_{int(r['ID'])}"] = estado_desejado
+                        try:
+                            st.session_state[f"chk_ordem_{int(r['ID'])}"] = estado_desejado
+                        except:
+                            pass
 
                 marcar_todos = st.checkbox(
                     "Marcar/Desmarcar", 
@@ -463,33 +593,43 @@ with aba2:
             if btn_enviar_lote:
                 ids_para_enviar = []
                 for _, row in pendentes_pagina.iterrows():
-                    cid = int(row["ID"])
-                    if st.session_state.get(f"chk_ordem_{cid}", False):
-                        ids_para_enviar.append(cid)
+                    try:
+                        cid = int(row["ID"])
+                        if st.session_state.get(f"chk_ordem_{cid}", False):
+                            ids_para_enviar.append(cid)
+                    except:
+                        continue
                 
                 if not ids_para_enviar:
                     st.warning("Nenhuma ordem foi selecionada!")
                 else:
                     df_atual = carregar_dados()
                     for cid in ids_para_enviar:
-                        df_atual.loc[pd.to_numeric(df_atual["ID"], errors="coerce") == cid, "Status"] = "Em Corte"
-                        df_atual.loc[pd.to_numeric(df_atual["ID"], errors="coerce") == cid, "Policorte"] = destino_lote
+                        mask = pd.to_numeric(df_atual["ID"], errors="coerce") == cid
+                        df_atual.loc[mask, "Status"] = "Em Corte"
+                        df_atual.loc[mask, "Policorte"] = destino_lote
                     salvar_dados(df_atual)
                     st.success(f"{len(ids_para_enviar)} ordem(ns) enviada(s) para a {destino_lote}!")
                     st.rerun()
 
+            # --- LÓGICA DE AGRUPAR CORRIGIDA PARA SUPABASE ---
             if btn_agrupar:
                 ids_para_agrupar = []
                 for _, row in pendentes_pagina.iterrows():
-                    cid = int(row["ID"])
-                    if st.session_state.get(f"chk_ordem_{cid}", False):
-                        ids_para_agrupar.append(cid)
+                    try:
+                        cid = int(row["ID"])
+                        if st.session_state.get(f"chk_ordem_{cid}", False):
+                            ids_para_agrupar.append(cid)
+                    except:
+                        continue
 
                 if len(ids_para_agrupar) < 2:
                     st.warning("Selecione pelo menos duas ordens para agrupar!")
                 else:
                     df_atual = carregar_dados()
-                    df_selecionadas = df_atual[df_atual["ID"].astype(int).isin(ids_para_agrupar)]
+                    # Garante conversão segura de IDs
+                    ids_num_series = pd.to_numeric(df_atual["ID"], errors="coerce")
+                    df_selecionadas = df_atual[ids_num_series.isin(ids_para_agrupar)]
                     
                     codigos_unicos = df_selecionadas["Codigo"].astype(str).str.strip().unique()
                     if len(codigos_unicos) > 1:
@@ -513,14 +653,18 @@ with aba2:
                         novo_texto_perfis = formatar_string_itens(perfis_combinados, "Perfil")
                         novo_texto_sobras = formatar_string_itens(sobras_combinadas, "Sobra")
 
-                        idx_principal = df_atual.index[df_atual["ID"].astype(int) == id_principal][0]
-                        df_atual.loc[idx_principal, "Perfis"] = novo_texto_perfis
-                        df_atual.loc[idx_principal, "Sobras"] = novo_texto_sobras
-                        df_atual.loc[idx_principal, "Agrupado"] = "Sim"
+                        # Atualiza o registro principal
+                        mask_principal = pd.to_numeric(df_atual["ID"], errors="coerce") == id_principal
+                        df_atual.loc[mask_principal, "Perfis"] = novo_texto_perfis
+                        df_atual.loc[mask_principal, "Sobras"] = novo_texto_sobras
+                        df_atual.loc[mask_principal, "Agrupado"] = "Sim"
 
-                        df_atual = df_atual[~df_atual["ID"].astype(int).isin(ids_para_remover)]
+                        # Salva a ordem unificada no Supabase
+                        salvar_dados(df_atual[mask_principal])
 
-                        salvar_dados(df_atual)
+                        # Deleta do Supabase as ordens secundárias que foram somadas
+                        excluir_ordens_por_ids(ids_para_remover)
+
                         st.success(f"Ordens agrupadas com sucesso no ID {id_principal}!")
                         st.rerun()
 
@@ -659,13 +803,13 @@ with aba2:
                                 str_s_novo = formatar_string_itens(novas_sobras_dict, "Sobra")
 
                                 df_atual = carregar_dados()
-                                idx_reg = df_atual.index[df_atual["ID"].astype(int) == current_id][0]
+                                mask_cur = pd.to_numeric(df_atual["ID"], errors="coerce") == current_id
                                 
                                 # Atualiza a ordem original com os novos valores editados
-                                df_atual.loc[idx_reg, "Perfis"] = str_p_novo
-                                df_atual.loc[idx_reg, "Sobras"] = str_s_novo
+                                df_atual.loc[mask_cur, "Perfis"] = str_p_novo
+                                df_atual.loc[mask_cur, "Sobras"] = str_s_novo
 
-                                # 3. Se houver quantidade restante, cria um novo registro (outra ordem) na tabela
+                                # 3. Se houver quantidade restante, cria um novo registro na tabela
                                 novo_id_gerado = None
                                 if perfis_restantes:
                                     max_id = pd.to_numeric(df_atual["ID"], errors="coerce").max()
@@ -675,7 +819,7 @@ with aba2:
                                     str_s_restante = formatar_string_itens(sobras_restantes, "Sobra")
                                     
                                     nova_linha = {
-                                        "ID": novo_id_gerado,
+                                        "ID": str(novo_id_gerado),
                                         "Data": row.get("Data", datetime.now().strftime("%d/%m/%Y %H:%M")),
                                         "Tipo": row.get("Tipo", "Ordens Criadas"),
                                         "Carga": row.get("Carga", ""),
@@ -702,6 +846,8 @@ with aba2:
                                 st.session_state[f"editando_{current_id}"] = False
                                 st.rerun()
 
+
+                                
 # ==========================================
 # ABAS 3, 4 e 5: POLICORTES 1, 2 e 3
 # ==========================================
