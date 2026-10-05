@@ -833,31 +833,39 @@ with aba2:
 
                                 
 # ==========================================
-# CSS GLOBAL PARA OS POLICORTES (BOTÕES DE LADO E CORES)
+# CSS GLOBAL PARA OS POLICORTES (CORREÇÃO DE LARGURA E BOTÕES)
 # ==========================================
 st.markdown("""
     <style>
-        /* Força as colunas a ficarem lado a lado mesmo em telas menores/tablets */
+        /* Força o container principal a usar todo o espaço sem criar barras de rolagem */
+        [data-testid="block-container"] {
+            padding-left: 1rem !important;
+            padding-right: 1rem !important;
+        }
+
+        /* Garante alinhamento lado a lado nas colunas sem estourar a largura */
         div[data-testid="stHorizontalBlock"] {
             flex-wrap: nowrap !important;
             align-items: center !important;
-            gap: 6px !important;
+            gap: 4px !important;
         }
 
-        /* Reduz o espaçamento das colunas dos botões para ficarem pequenos do lado */
+        /* Ajusta as colunas para encolherem adequadamente */
         div[data-testid="column"] {
             min-width: 0 !important;
+            padding: 0 !important;
         }
 
-        /* Estilo base para botões compactos */
+        /* Estilo para os botões ficarem perfeitamente encaixados ao lado */
         div.stButton > button {
-            padding: 4px 6px !important;
-            font-size: 13px !important;
-            height: 44px !important;
+            padding: 2px 4px !important;
+            font-size: 12px !important;
+            height: 42px !important;
             font-weight: bold !important;
             border-radius: 6px !important;
             border: none !important;
             white-space: nowrap !important;
+            width: 100% !important;
         }
 
         /* Botão Voltar (Amarelo / Laranja) */
@@ -943,16 +951,16 @@ for aba_obj, nome_poli in zip([aba3, aba4, aba5], ["Policorte 1", "Policorte 2",
                     qtd_duplicada = contagem_codigos.get(str(row["Codigo"]).strip(), 1)
                     html_bolinha = f'<span title="{tooltip_bolinha}" style="height: 12px; width: 12px; background-color: {cor_bolinha}; border-radius: 50%; display: inline-block; margin-left: 6px; box-shadow: 0 0 4px {sombra_bolinha};"></span>' if qtd_duplicada > 1 else ''
 
-                    # Proporção: Card ocupa mais espaço e os botões ficam compactos ao lado
-                    col_card, col_btn1, col_btn2 = st.columns([0.70, 0.15, 0.15])
+                    # Proporção ajustada (58% Card / 21% Botão 1 / 21% Botão 2) para caber sem cortar
+                    col_card, col_btn1, col_btn2 = st.columns([0.58, 0.21, 0.21])
                     
                     with col_card:
                         st.markdown(
                             f"""
-                            <div style="padding: 8px 10px; border: 2px solid {borda_cor}; background-color: {fundo_cor}; border-radius: 6px;">
-                                <span style="color: #495057; font-size: 12px; font-weight: 500;">ID: {current_id} | Tipo: <strong>{row['Tipo']}</strong> | Carga: <strong>{row['Carga']}</strong></span>
-                                <div style="margin-top: 2px; font-size: 15px; line-height: 1.3;">
-                                    <strong>Ordem:</strong> <span style="color: #0056b3; font-weight: 900; font-size: 22px; letter-spacing: 0.5px;">{row['Codigo']}</span>{html_bolinha} | 
+                            <div style="padding: 6px 8px; border: 2px solid {borda_cor}; background-color: {fundo_cor}; border-radius: 6px;">
+                                <span style="color: #495057; font-size: 11px; font-weight: 500;">ID: {current_id} | Tipo: <strong>{row['Tipo']}</strong> | Carga: <strong>{row['Carga']}</strong></span>
+                                <div style="margin-top: 2px; font-size: 13px; line-height: 1.2;">
+                                    <strong>Ordem:</strong> <span style="color: #0056b3; font-weight: 900; font-size: 20px; letter-spacing: 0.5px;">{row['Codigo']}</span>{html_bolinha} | 
                                     <strong>Perfil:</strong> <span style="color: #0056b3; font-weight: bold;">{row['Perfis']}</span> | 
                                     <strong>Sobras:</strong> <span style="color: #28a745; font-weight: bold;">{row['Sobras']}</span>
                                 </div>
