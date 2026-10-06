@@ -833,34 +833,6 @@ with aba2:
 
                                 
 # ==========================================
-# CSS DEDICADO PARA MANTER LAYOUT LADO A LADO
-# ==========================================
-st.markdown("""
-    <style>
-        /* Força as colunas a ficarem na mesma linha mesmo em telas menores (tablets) */
-        [data-testid="stHorizontalBlock"] {
-            display: flex !important;
-            flex-direction: row !important;
-            flex-wrap: nowrap !important;
-            align-items: center !important;
-            gap: 6px !important;
-        }
-
-        /* Padroniza o visual e tamanho dos botões nativos */
-        div.stButton > button {
-            padding: 2px 4px !important;
-            font-size: 11px !important;
-            height: 42px !important;
-            font-weight: bold !important;
-            border-radius: 4px !important;
-            width: 100% !important;
-            white-space: nowrap !important;
-        }
-    </style>
-""", unsafe_allow_html=True)
-
-
-# ==========================================
 # ABAS 3, 4 e 5: POLICORTES 1, 2 e 3
 # ==========================================
 for aba_obj, nome_poli in zip([aba3, aba4, aba5], ["Policorte 1", "Policorte 2", "Policorte 3"]):
@@ -923,17 +895,13 @@ for aba_obj, nome_poli in zip([aba3, aba4, aba5], ["Policorte 1", "Policorte 2",
                     qtd_duplicada = contagem_codigos.get(str(row["Codigo"]).strip(), 1)
                     html_bolinha = f'<span title="{tooltip_bolinha}" style="height: 10px; width: 10px; background-color: {cor_bolinha}; border-radius: 50%; display: inline-block; margin-left: 6px; box-shadow: 0 0 4px {sombra_bolinha};"></span>' if qtd_duplicada > 1 else ''
 
-                    # Ajuste fino nas proporções: 66% para o card com texto flexível e 17% para cada botão
-                    col_card, col_btn1, col_btn2 = st.columns([0.66, 0.17, 0.17])
-                    
+                    col_card, col_btn1, col_btn2 = st.columns([0.70, 0.15, 0.15])
                     with col_card:
                         st.markdown(
                             f"""
                             <div style="padding: 4px 8px; border: 1px solid {borda_cor}; background-color: {fundo_cor}; border-radius: 4px; margin-bottom: 4px; font-size: 13px;">
-                                <div style="color: #6c757d; font-size: 11px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis;">
-                                    ID: {current_id} | Tipo: <strong>{row['Tipo']}</strong> | Carga: {row['Carga']}
-                                </div>
-                                <div style="margin-top: 1px; word-break: break-word;">
+                                <span style="color: #6c757d; font-size: 11px;">ID: {current_id} | Tipo: <strong>{row['Tipo']}</strong> | Carga: {row['Carga']}</span>
+                                <div style="margin-top: 1px;">
                                     <strong>Ordem:</strong> <span style="color: #0056b3; font-weight: bold;">{row['Codigo']}</span>{html_bolinha} | 
                                     <strong>Perfil:</strong> <span style="color: #0056b3; font-weight: bold;">{row['Perfis']}</span> | 
                                     <strong>Sobras:</strong> <span style="color: #28a745;">{row['Sobras']}</span>
@@ -943,7 +911,7 @@ for aba_obj, nome_poli in zip([aba3, aba4, aba5], ["Policorte 1", "Policorte 2",
                             unsafe_allow_html=True,
                         )
                     with col_btn1:
-                        if st.button("⬅ Voltar", key=f"vol_{nome_poli}_{current_id}", use_container_width=True):
+                        if st.button("⬅️️ Voltar", key=f"vol_{nome_poli}_{current_id}", use_container_width=True):
                             df_atual = carregar_dados()
                             df_atual.loc[pd.to_numeric(df_atual["ID"], errors="coerce") == current_id, "Status"] = "Pendente"
                             df_atual.loc[pd.to_numeric(df_atual["ID"], errors="coerce") == current_id, "Policorte"] = "Nenhuma"
@@ -957,8 +925,6 @@ for aba_obj, nome_poli in zip([aba3, aba4, aba5], ["Policorte 1", "Policorte 2",
                             salvar_dados(df_atual)
                             st.success(f"ID {current_id} finalizado!")
                             st.rerun()
-
-
 
 # ==========================================
 # ABA 6: FINALIZADAS
